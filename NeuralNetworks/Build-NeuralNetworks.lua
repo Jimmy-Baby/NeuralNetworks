@@ -1,4 +1,4 @@
-project "ProjectName"
+project "NeuralNetworks"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"

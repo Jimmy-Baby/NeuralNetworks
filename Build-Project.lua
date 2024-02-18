@@ -1,5 +1,5 @@
 -- premake5.lua
-workspace "ProjectName"
+workspace "NeuralNetworks"
    architecture "x64"
    configurations { "Debug", "Release", "Dist" }
    startproject "App"
@@ -11,4 +11,4 @@ workspace "ProjectName"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "Build-External.lua"
-include "ProjectName/Build-ProjectName.lua"
+include "NeuralNetworks/Build-NeuralNetworks.lua"

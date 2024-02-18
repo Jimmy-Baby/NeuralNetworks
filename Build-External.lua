@@ -1,5 +1,3 @@
--- WalnutExternal.lua
-
 -- VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 IncludeDir = {}
