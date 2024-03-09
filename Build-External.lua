@@ -14,6 +14,7 @@ Library = {}
 
 group "Dependencies"
    include "vendor/ExampleLib"
+   include "vendor/Eigen3"
 group ""
 
 group "Core"

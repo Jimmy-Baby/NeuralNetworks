@@ -1,7 +1,7 @@
 project "NeuralNetworks"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	targetdir "bin/%{cfg.buildcfg}"
 	staticruntime "off"
 
@@ -10,6 +10,7 @@ project "NeuralNetworks"
 	includedirs
 	{
 		"../vendor/ExampleLib",
+		"../vendor/Eigen3/include",
 
 		-- Example include dir from Build-External.lua
 		-- "%{IncludeDir.VulkanSDK}",
@@ -17,7 +18,7 @@ project "NeuralNetworks"
 
     links
     {
-        "Walnut"
+        -- Library links
     }
 
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")

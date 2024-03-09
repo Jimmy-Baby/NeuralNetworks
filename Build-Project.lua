@@ -2,7 +2,7 @@
 workspace "NeuralNetworks"
    architecture "x64"
    configurations { "Debug", "Release", "Dist" }
-   startproject "App"
+   startproject "NeuralNetworks"
 
    -- Workspace-wide build options for MSVC
    filter "system:windows"
