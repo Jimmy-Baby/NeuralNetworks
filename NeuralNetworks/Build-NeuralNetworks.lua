@@ -10,7 +10,8 @@ project "NeuralNetworks"
 	includedirs
 	{
 		"../vendor/ExampleLib",
-		"../vendor/Eigen3/include",
+		"../vendor/Eigen3/include/eigen3",
+		"../vendor/MiniDNN/include",
 
 		-- Example include dir from Build-External.lua
 		-- "%{IncludeDir.VulkanSDK}",

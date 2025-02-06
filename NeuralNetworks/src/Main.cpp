@@ -1,12 +1,6 @@
-#include "Models/PatternFiniteDiff.h"
-#include "Models/PatternGradientDescent.h"
-#include "Models/LogicGates.h"
-#include "Models/Xor.h"
-#include "Models/XorMat.h"
-#include "Models/FlexNetwork.h"
-#include "ModularNN/ModularNN.h"
+#include "Networks/HandWrittenDigitIdentifier/DigitMain.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-	return 0;
+	return DigitIdentifier::Main(argc, argv);
 }

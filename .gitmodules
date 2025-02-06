@@ -1,1 +1,4 @@
 
+[submodule "vendor/MiniDNN"]
+	path = vendor/MiniDNN
+	url = https://github.com/Jimmy-Baby/MiniDNN
