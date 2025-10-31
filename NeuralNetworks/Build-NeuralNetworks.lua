@@ -9,13 +9,11 @@ project "NeuralNetworks"
 
 	includedirs
 	{
-		"../vendor/ExampleLib",
-		"../vendor/Eigen3/include/eigen3",
-		"../vendor/MiniDNN/include",
-
-		-- Example include dir from Build-External.lua
-		-- "%{IncludeDir.VulkanSDK}",
-   }
+		"../NeuralNetworks/src",
+    }
+	
+	pchheader "Pch.h"
+	pchsource "src/Pch.cpp"
 
     links
     {
