@@ -1,0 +1,188 @@
+// Precompiled headers
+#include "Pch.h"
+
+#include "TinyDnnAdder.h"
+
+namespace TinyDnnAdder
+{
+	using namespace tiny_cnn;
+
+	namespace
+	{
+		// Constants for network architecture and training
+		constexpr cnn_size_t INPUT_SIZE = 9; // 4 bits (a) + 4 bits (b) + 1 bit (carry_in)
+		constexpr cnn_size_t OUTPUT_SIZE = 5; // 4 bits (sum) + 1 bit (carry_out)
+		constexpr cnn_size_t HIDDEN_LAYER_1 = 32; // First hidden layer neurons
+		constexpr cnn_size_t HIDDEN_LAYER_2 = 16; // Second hidden layer neurons
+
+		constexpr cnn_size_t BITS_PER_NUMBER = 4;
+		constexpr cnn_size_t MAX_4BIT_VALUE = 16;
+		constexpr cnn_size_t CARRY_BIT_INDEX = 8;
+		constexpr cnn_size_t CARRY_OUT_INDEX = 4;
+
+		constexpr int TRAINING_EPOCHS = 2000;
+		constexpr int BATCH_SIZE = 32;
+		constexpr tiny_cnn::float_t BINARY_THRESHOLD = 0.5f;
+
+		/// <summary>
+		/// Builds a complete dataset for 4-bit addition with carry.
+		/// Generates all possible combinations of two 4-bit numbers (0-15) with carry-in (0-1).
+		/// Total: 16 * 16 * 2 = 512 samples
+		/// </summary>
+		/// <returns>Pair of input vectors and corresponding output vectors</returns>
+		std::pair<std::vector<vec_t>, std::vector<vec_t>> BuildTrainingDataset()
+		{
+			std::vector<vec_t> inputs;
+			std::vector<vec_t> outputs;
+
+			// Reserve memory upfront for better performance
+			constexpr size_t totalSamples = MAX_4BIT_VALUE * MAX_4BIT_VALUE * 2;
+			inputs.reserve(totalSamples);
+			outputs.reserve(totalSamples);
+
+			// Generate all combinations of 4-bit addition: a + b + carry_in
+			for (size_t firstNumber = 0; firstNumber < MAX_4BIT_VALUE; ++firstNumber)
+			{
+				for (size_t secondNumber = 0; secondNumber < MAX_4BIT_VALUE; ++secondNumber)
+				{
+					for (size_t carryIn = 0; carryIn <= 1; ++carryIn)
+					{
+						// Create input vector: [a0, a1, a2, a3, b0, b1, b2, b3, carry_in]
+						vec_t inputVector(INPUT_SIZE, 0.0f);
+
+						// Encode first 4-bit number (a)
+						for (size_t bitPosition = 0; bitPosition < BITS_PER_NUMBER; ++bitPosition)
+						{
+							inputVector[bitPosition] = static_cast<tiny_cnn::float_t>((firstNumber >> bitPosition) & 1);
+						}
+
+						// Encode second 4-bit number (b)
+						for (size_t bitPosition = 0; bitPosition < BITS_PER_NUMBER; ++bitPosition)
+						{
+							inputVector[BITS_PER_NUMBER + bitPosition] = static_cast<tiny_cnn::float_t>((secondNumber >> bitPosition) & 1);
+						}
+
+						// Encode carry-in bit
+						inputVector[CARRY_BIT_INDEX] = static_cast<tiny_cnn::float_t>(carryIn);
+
+						// Calculate expected output: sum and carry-out
+						const int totalSum = static_cast<int>(firstNumber + secondNumber + carryIn);
+						const int sum4Bit = totalSum & 0xF; // Lower 4 bits
+						const int carryOut = (totalSum >> 4) & 1; // Carry-out bit
+
+						// Create output vector: [sum0, sum1, sum2, sum3, carry_out]
+						vec_t outputVector(OUTPUT_SIZE, 0.0f);
+
+						// Encode 4-bit sum result
+						for (size_t bitPosition = 0; bitPosition < BITS_PER_NUMBER; ++bitPosition)
+						{
+							outputVector[bitPosition] = static_cast<tiny_cnn::float_t>((sum4Bit >> bitPosition) & 1);
+						}
+
+						// Encode carry-out bit
+						outputVector[CARRY_OUT_INDEX] = static_cast<tiny_cnn::float_t>(carryOut);
+
+						inputs.emplace_back(std::move(inputVector));
+						outputs.emplace_back(std::move(outputVector));
+					}
+				}
+			}
+
+			return { inputs, outputs };
+		}
+
+		/// <summary>
+		/// Converts a continuous neural network output to binary by thresholding
+		/// </summary>
+		int ToBinaryBit(const tiny_cnn::float_t value)
+		{
+			return (value > BINARY_THRESHOLD) ? 1 : 0;
+		}
+
+		/// <summary>
+		/// Converts a 4-bit binary vector to an integer value
+		/// </summary>
+		int DecodeBinaryVector(const vec_t& vector, const size_t startIndex)
+		{
+			int result = 0;
+			for (size_t bitPosition = 0; bitPosition < BITS_PER_NUMBER; ++bitPosition)
+			{
+				result |= ToBinaryBit(vector[startIndex + bitPosition]) << bitPosition;
+			}
+			return result;
+		}
+
+		/// <summary>
+		/// Evaluates the trained network's accuracy on the dataset
+		/// </summary>
+		void EvaluateAndPrintAccuracy(network<sequential>& neuralNetwork, const std::vector<vec_t>& testInputs, const std::vector<vec_t>& expectedOutputs)
+		{
+			size_t correctPredictions = 0;
+
+			for (size_t sampleIndex = 0; sampleIndex < testInputs.size(); ++sampleIndex)
+			{
+				const vec_t prediction = neuralNetwork.predict(testInputs[sampleIndex]);
+
+				// Decode predicted sum and carry-out
+				const int predictedSum = DecodeBinaryVector(prediction, 0);
+				const int predictedCarryOut = ToBinaryBit(prediction[CARRY_OUT_INDEX]);
+
+				// Decode expected sum and carry-out
+				const int expectedSum = DecodeBinaryVector(expectedOutputs[sampleIndex], 0);
+				const int expectedCarryOut = ToBinaryBit(expectedOutputs[sampleIndex][CARRY_OUT_INDEX]);
+
+				// Check if both sum and carry-out match
+				if (predictedSum == expectedSum && predictedCarryOut == expectedCarryOut)
+				{
+					++correctPredictions;
+				}
+			}
+
+			const tiny_cnn::float_t accuracy = 100.0f * static_cast<tiny_cnn::float_t>(correctPredictions) / static_cast<tiny_cnn::float_t>(testInputs.size());
+			printf("\nTinyDNN 4-bit Adder Results:\n");
+			printf("  Accuracy: %.2f%% (%zu/%zu correct)\n", accuracy, correctPredictions, testInputs.size());
+		}
+	}
+
+	void Run()
+	{
+		printf("Training TinyDNN 4-bit Adder Neural Network...\n");
+		printf("Architecture: %zu -> %zu -> %zu -> %zu (sigmoid activation)\n", INPUT_SIZE, HIDDEN_LAYER_1, HIDDEN_LAYER_2, OUTPUT_SIZE);
+
+		// Build complete training dataset (512 samples)
+		auto [trainingInputs, trainingOutputs] = BuildTrainingDataset();
+
+		// Construct neural network architecture
+		// Input: 9 neurons (two 4-bit numbers + carry-in)
+		// Hidden layers: 32 -> 16 neurons (sigmoid activation for non-linearity)
+		// Output: 5 neurons (4-bit sum + carry-out)
+		network<sequential> neuralNetwork;
+		neuralNetwork << fully_connected_layer<activation::sigmoid>(INPUT_SIZE, HIDDEN_LAYER_1)
+			<< fully_connected_layer<activation::sigmoid>(HIDDEN_LAYER_1, HIDDEN_LAYER_2)
+			<< fully_connected_layer<activation::sigmoid>(HIDDEN_LAYER_2, OUTPUT_SIZE);
+
+		// Use Adam optimizer (adaptive learning rate, good default choice)
+		adam optimizer;
+
+		// Progress display for monitoring training
+		progress_display progressDisplay(static_cast<unsigned long>(trainingInputs.size()));
+
+		auto onEpochComplete = [&]
+		{
+			// Reset progress display for next epoch
+			progressDisplay.restart(static_cast<unsigned long>(trainingInputs.size()));
+		};
+
+		auto onMinibatchComplete = [&]
+		{
+			++progressDisplay;
+		};
+
+		// Train the network using Mean Squared Error loss function
+		// MSE is appropriate for regression-like tasks with continuous outputs (0-1 range)
+		neuralNetwork.fit<mse>(optimizer, trainingInputs, trainingOutputs, BATCH_SIZE, TRAINING_EPOCHS, onMinibatchComplete, onEpochComplete);
+
+		// Evaluate final accuracy on the training set
+		EvaluateAndPrintAccuracy(neuralNetwork, trainingInputs, trainingOutputs);
+	}
+}
