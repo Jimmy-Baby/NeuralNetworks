@@ -17,3 +17,6 @@
 #include <atomic>
 #include <algorithm>
 #include <chrono>
+
+// TinyDNN
+#include "tiny_cnn/tiny_cnn.h"

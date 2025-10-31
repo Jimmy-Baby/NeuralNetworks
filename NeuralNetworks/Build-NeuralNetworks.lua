@@ -10,6 +10,7 @@ project "NeuralNetworks"
 	includedirs
 	{
 		"../NeuralNetworks/src",
+		"../vendor/tiny-dnn",
     }
 	
 	pchheader "Pch.h"
