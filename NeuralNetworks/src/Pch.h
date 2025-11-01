@@ -16,6 +16,10 @@
 #include <atomic>
 #include <algorithm>
 #include <chrono>
+#include <iostream>
+#include <string>
+#include <optional>
+#include <string_view>
 
 // TinyDNN
 #include "tiny_cnn/tiny_cnn.h"
