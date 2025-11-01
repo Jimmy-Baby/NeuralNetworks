@@ -139,15 +139,16 @@ namespace TinyDnnAdder
 			}
 
 			const tiny_cnn::float_t accuracy = 100.0 * static_cast<tiny_cnn::float_t>(correctPredictions) / static_cast<tiny_cnn::float_t>(testInputs.size());
-			printf("\nResults:\n");
-			printf("  Accuracy: %.2f%% (%zu/%zu correct)\n", accuracy, correctPredictions, testInputs.size());
+			std::println();
+			std::println("Results:");
+			std::println("  Accuracy: {:.2f}% ({}/{} correct)", accuracy, correctPredictions, testInputs.size());
 		}
 	}
 
 	void Run()
 	{
-		printf("Training 4 bit Adder Net\n");
-		printf("Arch: %zu -> %zu -> %zu -> %zu\n", InputSize, HiddenLayer1, HiddenLayer2, OutputSize);
+		std::println("Training 4 bit Adder Net");
+		std::println("Arch: {} -> {} -> {} -> {}", InputSize, HiddenLayer1, HiddenLayer2, OutputSize);
 
 		// Build complete training dataset (512 samples)
 		auto [trainingInputs, trainingOutputs] = BuildTrainingDataset();
@@ -162,12 +163,25 @@ namespace TinyDnnAdder
 		
 		adam optimiser;
 
+		// Track epochs
+		size_t epochCount = 0;
+
 		// Progress display for monitoring training
-		progress_display progressDisplay(TrainingEpochs);
+		progress_display progressDisplay(BatchSize);
 
 		auto onEpochComplete = [&]
 		{
+			++epochCount;
 			++progressDisplay;
+
+			// Print out current error/cost every BatchSize epochs
+			if (epochCount % BatchSize == 0)
+			{
+				const tiny_cnn::float_t loss = neuralNetwork.get_loss<mse>(trainingInputs, trainingOutputs);
+				std::println();
+				std::println("Epoch {}/{}: Loss = {:.6f}", epochCount, TrainingEpochs, loss);
+				progressDisplay.restart(BatchSize);
+			}
 		};
 
 		auto onMinibatchComplete = [&]

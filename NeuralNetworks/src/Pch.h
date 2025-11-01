@@ -1,5 +1,6 @@
 #pragma once
 
+#include <print>
 #include <cmath>
 #include <bitset>
 #include <cassert>
@@ -8,8 +9,6 @@
 #include <random>
 #include <format>
 #include <vector>
-#include <cassert>
-#include <format>
 #include <functional>
 #include <stdexcept>
 #include <thread>
