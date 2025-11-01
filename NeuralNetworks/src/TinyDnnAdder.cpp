@@ -20,8 +20,8 @@ namespace TinyDnnAdder
 		constexpr cnn_size_t CarryBitIndex = 8;
 		constexpr cnn_size_t CarryOutIndex = 4;
 
-		constexpr int TrainingEpochs = 2000;
-		constexpr int BatchSize = 32;
+		constexpr int TrainingEpochs = 768;
+		constexpr int BatchSize = 128;
 		constexpr tiny_cnn::float_t BinaryThreshold = 0.5;
 
 		/// <summary>
@@ -157,8 +157,8 @@ namespace TinyDnnAdder
 		// Hidden layers: 32 -> 16
 		// Output: 5 (4-bit sum + carry-out)
 		network<sequential> neuralNetwork;
-		neuralNetwork << fully_connected_layer<activation::sigmoid>(InputSize, HiddenLayer1)
-			<< fully_connected_layer<activation::sigmoid>(HiddenLayer1, HiddenLayer2)
+		neuralNetwork << fully_connected_layer<activation::relu>(InputSize, HiddenLayer1)
+			<< fully_connected_layer<activation::relu>(HiddenLayer1, HiddenLayer2)
 			<< fully_connected_layer<activation::sigmoid>(HiddenLayer2, OutputSize);
 		
 		adam optimiser;
