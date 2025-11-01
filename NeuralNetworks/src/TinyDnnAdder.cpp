@@ -10,7 +10,7 @@ namespace TinyDnnAdder
 	namespace
 	{
 		// Constants for network architecture and training
-		constexpr cnn_size_t InputSize = 9; // 4 bits (a) + 4 bits (b) + 1 bit (carry_in)
+		constexpr cnn_size_t InputSize = 9;  // 4 bits (a) + 4 bits (b) + 1 bit (carry_in)
 		constexpr cnn_size_t OutputSize = 5; // 4 bits (sum) + 1 bit (carry_out)
 		constexpr cnn_size_t HiddenLayer1 = 32;
 		constexpr cnn_size_t HiddenLayer2 = 16;
@@ -20,8 +20,8 @@ namespace TinyDnnAdder
 		constexpr cnn_size_t CarryBitIndex = 8;
 		constexpr cnn_size_t CarryOutIndex = 4;
 
-		constexpr int TrainingEpochs = 768;
 		constexpr int BatchSize = 128;
+		constexpr int TrainingEpochs = 5 * BatchSize;
 		constexpr tiny_cnn::float_t BinaryThreshold = 0.5;
 
 		/// <summary>
@@ -67,7 +67,7 @@ namespace TinyDnnAdder
 
 						// Calculate expected output: sum and carry-out
 						const int totalSum = static_cast<int>(firstNumber + secondNumber + carryIn);
-						const int sum4Bit = totalSum & 0xF; // Lower 4 bits
+						const int sum4Bit = totalSum & 0xF;       // Lower 4 bits
 						const int carryOut = (totalSum >> 4) & 1; // Carry-out bit
 
 						// Create output vector: [sum0, sum1, sum2, sum3, carry_out]
@@ -143,16 +143,98 @@ namespace TinyDnnAdder
 			std::println("Results:");
 			std::println("  Accuracy: {:.2f}% ({}/{} correct)", accuracy, correctPredictions, testInputs.size());
 		}
+
+		/// <summary>
+		/// Allow the user to enter decimal inputs and view the network's predictions.
+		/// </summary>
+		void InteractiveTest(network<sequential>& neuralNetwork)
+		{
+			std::println();
+			std::println("Interactive test - enter: a b carry_in (format: a/b is 0-15, carry_in is 0 or 1)");
+			std::println("Type 'q' to quit.");
+
+			std::string line;
+			for (;;)
+			{
+				std::print("> ");
+
+				if (!std::getline(std::cin, line))
+				{
+					break;
+				}
+
+				std::istringstream firstToken(line);
+				std::string token;
+
+				if (!(firstToken >> token))
+				{
+					continue;
+				}
+
+				if (token == "q" || token == "Q" || token == "quit" || token == "QUIT")
+				{
+					break;
+				}
+
+				int a, b, carryIn;
+				std::istringstream iss(line);
+				if (!(iss >> a >> b >> carryIn))
+				{
+					std::println("Please enter three integers: a  b  carry_in");
+					continue;
+				}
+
+				if (a < 0 || a >= static_cast<int>(Max4BitValue) || b < 0 || b >= static_cast<int>(Max4BitValue) || (carryIn != 0 && carryIn != 1))
+				{
+					std::println("Out of range. a/b must be 0..15 and carry_in must be 0 or 1.");
+					continue;
+				}
+
+				// Build input vector
+				vec_t input(InputSize, 0.0);
+				for (size_t index = 0; index < BitsPerNumber; ++index)
+				{
+					input[index] = static_cast<tiny_cnn::float_t>((a >> index) & 1);
+					input[BitsPerNumber + index] = static_cast<tiny_cnn::float_t>((b >> index) & 1);
+				}
+
+				input[CarryBitIndex] = static_cast<tiny_cnn::float_t>(carryIn);
+
+				// Predict
+				const vec_t y = neuralNetwork.predict(input);
+				const int predictedSum = DecodeBinaryVector(y, 0);
+				const int predictedCarry = ToBinaryBit(y[CarryOutIndex]);
+				const int predictedTotal = (predictedCarry << 4) | predictedSum; // 0..31
+
+				// Expected
+				const int expectedTotal = a + b + carryIn;
+				const int expectedSum = expectedTotal & 0xF;
+				const int expectedCarry = (expectedTotal >> 4) & 1;
+
+				std::println("Input: a = '{}' b = '{}' carry_in = '{}'", a, b, carryIn);
+
+				std::println("Predicted:");
+				std::println("	sum: {}", predictedSum);
+				std::println("	carry_out: {}", predictedCarry);
+				std::println("	total: {}", predictedTotal);
+				std::println("	bits: {} {} {} {}", ToBinaryBit(y[0]), ToBinaryBit(y[1]), ToBinaryBit(y[2]), ToBinaryBit(y[3]));
+
+				std::println("Expected:");
+				std::println("	sum: {}", expectedSum);
+				std::println("	carry_out: {}", expectedCarry);
+				std::println("	total: {}", expectedTotal);
+				std::println("	bits: {} {} {} {}", (expectedSum >> 0) & 1, (expectedSum >> 1) & 1, (expectedSum >> 2) & 1, (expectedSum >> 3) & 1);
+			}
+		}
 	}
 
 	void Run()
 	{
 		std::println("Training 4 bit Adder Net");
-		std::println("Arch: {} -> {} -> {} -> {}", InputSize, HiddenLayer1, HiddenLayer2, OutputSize);
 
 		// Build complete training dataset (512 samples)
 		auto [trainingInputs, trainingOutputs] = BuildTrainingDataset();
-		
+
 		// Input: 9 (two 4-bit numbers + carry-in)
 		// Hidden layers: 32 -> 16
 		// Output: 5 (4-bit sum + carry-out)
@@ -160,7 +242,7 @@ namespace TinyDnnAdder
 		neuralNetwork << fully_connected_layer<activation::relu>(InputSize, HiddenLayer1)
 			<< fully_connected_layer<activation::relu>(HiddenLayer1, HiddenLayer2)
 			<< fully_connected_layer<activation::sigmoid>(HiddenLayer2, OutputSize);
-		
+
 		adam optimiser;
 
 		// Track epochs
@@ -194,5 +276,8 @@ namespace TinyDnnAdder
 
 		// Evaluate final accuracy on the training set
 		EvaluateAndPrintAccuracy(neuralNetwork, trainingInputs, trainingOutputs);
+
+		// Let the user test the network
+		InteractiveTest(neuralNetwork);
 	}
 }
