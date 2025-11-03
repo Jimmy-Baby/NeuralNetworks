@@ -44,14 +44,14 @@ namespace MenuInternal
 			}
 
 			std::println("q) Quit");
-			std::println();
+			std::printnl();
 			std::print("Select an option number to preview and run: ");
 		}
 
 		// Display a preview for a single menu item and prompt for confirmation.
 		void ShowPreview(const MenuItem& it) const
 		{
-			std::println();
+			std::printnl();
 			std::println("--- Preview: {} ---", it.Name);
 
 			if (!it.ArchitectureInfo.empty())
@@ -64,7 +64,7 @@ namespace MenuInternal
 				std::println("Description: {}", it.Description);
 			}
 
-			std::println();
+			std::printnl();
 			std::print("Run this model? (y/n): ");
 		}
 
@@ -148,9 +148,9 @@ namespace MenuInternal
 				std::string confirm = ReadLine();
 				if (confirm == "y" || confirm == "Y")
 				{
-					std::println();
+					std::printnl();
 					std::println("Running \"{}\"... (output will be shown below)", item->Name);
-					std::println();
+					std::printnl();
 
 					// 4) Execute the callback. Exceptions are caught to avoid crashing the menu.
 					try
@@ -166,7 +166,7 @@ namespace MenuInternal
 						std::println("Unknown error while running.");
 					}
 
-					std::println();
+					std::printnl();
 					std::println("--- Run complete ---");
 					std::print("Press Enter to return to the menu...");
 					ReadLine();

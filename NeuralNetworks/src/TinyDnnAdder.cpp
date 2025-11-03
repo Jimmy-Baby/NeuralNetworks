@@ -139,7 +139,7 @@ namespace TinyDnnAdder
 			}
 
 			const tiny_cnn::float_t accuracy = 100.0 * static_cast<tiny_cnn::float_t>(correctPredictions) / static_cast<tiny_cnn::float_t>(testInputs.size());
-			std::println();
+			std::printnl();
 			std::println("Results:");
 			std::println("  Accuracy: {:.2f}% ({}/{} correct)", accuracy, correctPredictions, testInputs.size());
 		}
@@ -149,7 +149,7 @@ namespace TinyDnnAdder
 		/// </summary>
 		void InteractiveTest(network<sequential>& neuralNetwork)
 		{
-			std::println();
+			std::printnl();
 			std::println("Interactive test - enter: a b carry_in (format: a/b is 0-15, carry_in is 0 or 1)");
 			std::println("Type 'q' to quit.");
 
@@ -260,7 +260,7 @@ namespace TinyDnnAdder
 			if (epochCount % BatchSize == 0)
 			{
 				const tiny_cnn::float_t loss = neuralNetwork.get_loss<mse>(trainingInputs, trainingOutputs);
-				std::println();
+				std::printnl();
 				std::println("Epoch {}/{}: Loss = {:.6f}", epochCount, TrainingEpochs, loss);
 				progressDisplay.restart(BatchSize);
 			}
