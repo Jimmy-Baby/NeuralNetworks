@@ -2,6 +2,7 @@
 #include "Pch.h"
 
 #include "TinyDnnAdder.h"
+#include "TinyDnnDigitRecognizer.h"
 
 // Entry point and simple text menu used to pick and run small demo models.
 // The menu is intentionally lightweight: it displays a list of demos, shows a
@@ -190,6 +191,14 @@ int main(int argc, char* argv[])
 	             []
 	             {
 		             TinyDnnAdder::Run();
+	             });
+
+	menu.AddItem("TinyDnnDigitRecognizer",
+	             "Train and test a handwritten digit recognition network (0-9).",
+	             "Input(784) -> Hidden(128)(ReLU) -> Hidden(64)(ReLU) -> Output(10)(Softmax)",
+	             []
+	             {
+		             TinyDnnDigitRecognizer::Run();
 	             });
 
 	menu.Run();
