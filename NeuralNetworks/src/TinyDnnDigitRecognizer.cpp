@@ -25,7 +25,6 @@ namespace TinyDnnDigitRecognizer
 
 		constexpr int BatchSize = 32;
 		constexpr int TrainingEpochs = 10;
-		constexpr tiny_cnn::float_t DropoutRate = 0.25;
 
 		/// <summary>
 		/// Reads a 32-bit big-endian integer from file stream
@@ -373,7 +372,7 @@ namespace TinyDnnDigitRecognizer
 		}
 
 		// Build the Convolutional Neural Network
-		// Architecture: input -> conv1 -> pool1 -> conv2 -> pool2 -> fc -> dropout -> output
+		// Architecture: input -> conv1 -> pool1 -> conv2 -> pool2 -> fc -> output
 		std::printnl();
 		std::println("Building Convolutional Neural Network...");
 		std::println("Architecture:");
@@ -384,7 +383,6 @@ namespace TinyDnnDigitRecognizer
 		std::println("  MaxPool2:    {}x{} pooling -> 4x4x{}", PoolSize, PoolSize, Conv2Filters);
 		std::println("  Flatten:     {} neurons", 4 * 4 * Conv2Filters);
 		std::println("  FC:			 {} neurons", FCLayerSize);
-		std::println("  Dropout:     {:.1f}% rate", static_cast<double>(DropoutRate * 100));
 		std::println("  Output:		 {} neurons (softmax)", OutputSize);
 		std::printnl();
 
@@ -405,10 +403,7 @@ namespace TinyDnnDigitRecognizer
 		// Layer 5: Fully Connected (1024 -> 128)
 		neuralNetwork << fully_connected_layer<activation::relu>(4 * 4 * Conv2Filters, FCLayerSize);
 		
-		// Layer 6: Dropout for regularization
-		neuralNetwork << dropout_layer(FCLayerSize, DropoutRate);
-		
-		// Layer 7: Output (128 -> 10)
+		// Layer 6: Output (128 -> 10)
 		neuralNetwork << fully_connected_layer<activation::softmax>(FCLayerSize, OutputSize);
 
 		// Use Adam optimizer with learning rate
@@ -426,7 +421,7 @@ namespace TinyDnnDigitRecognizer
 			++epochCount;
 			++progressDisplay;
 
-			const tiny_cnn::float_t loss = neuralNetwork.get_loss<mse>(trainingInputs, trainingOutputs);
+			const tiny_cnn::float_t loss = neuralNetwork.get_loss<cross_entropy_multiclass>(trainingInputs, trainingOutputs);
 			std::printnl();
 			std::println("Epoch {}/{}: Loss = {:.6f}", epochCount, TrainingEpochs, loss);
 			
@@ -460,9 +455,9 @@ namespace TinyDnnDigitRecognizer
 		std::println("  Optimizer: Adam");
 		std::printnl();
 
-		// Train the network using MSE loss function
-		// MSE is numerically stable and works well with softmax output
-		neuralNetwork.fit<mse>(optimiser, trainingInputs, trainingOutputs, BatchSize, TrainingEpochs, onMinibatchComplete, onEpochComplete);
+		// Train the network using cross-entropy loss function
+		// Cross-entropy is more appropriate for multi-class classification with softmax output
+		neuralNetwork.fit<cross_entropy_multiclass>(optimiser, trainingInputs, trainingOutputs, BatchSize, TrainingEpochs, onMinibatchComplete, onEpochComplete);
 
 		// Evaluate final accuracy on the full test set
 		std::printnl();
